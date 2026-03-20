@@ -5,7 +5,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 [![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker)](https://www.docker.com/)
 
-Een krachtige, zelfgehoste Task Manager gebaseerd op het befaamde **Eisenhower Matrix** principe. Beheer je prioriteiten moeiteloos door taken te categoriseren op basis van urgentie en belangrijkheid, compleet met een intuïtieve Drag & Drop interface en veilige Microsoft-authenticatie.
+Applicatie voor task management gebaseerd op de Eisenhower Matrix. De applicatie is bedoeld voor het categoriseren en beheren van taken op basis van urgentie en belangrijkheid.
 
 ---
 
@@ -15,53 +15,54 @@ Een krachtige, zelfgehoste Task Manager gebaseerd op het befaamde **Eisenhower M
 
 ---
 
-## Features
+## Kernfuncties
 
-- **Eisenhower Matrix:** Visuele weergave van je prioriteiten in de vier bekende kwadranten (Do, Schedule, Delegate, Ignore).
-- **Drag & Drop:** Sleep je taken razendsnel tussen de verschillende kwadranten met soepele animaties dankzij `@dnd-kit`.
-- **Veilige Authenticatie:** Integratie integratie (MSAL) voor naadloos en veilig inloggen.
-- **Lokale Database:** Razendsnelle, zero-config opslag via SQLite en de Prisma ORM.
-- **Modern Design:** Prachtige, responsive interface gebouwd met Tailwind CSS en Lucide Icons.
+- **Eisenhower Matrix:** Categorisatie van taken in de vier standaard kwadranten (Do, Schedule, Delegate, Ignore).
+- **Drag & Drop support:** Mogelijkheid om taken tussen kwadranten te verplaatsen.
+- **Authenticatie:** Inlogmechanisme via Microsoft Entra ID (MSAL) integratie.
+- **Databeheer:** Data-opslag gefaciliteerd door SQLite in combinatie met de Prisma ORM.
+- **Frontend Stack:** Single-page structuur gebouwd met Next.js, gestyled met Tailwind CSS.
 
 ---
 
-## Lokale Installatie (Development)
+## Lokale Development
 
-Wil je de code bewerken? Volg dan deze stappen:
+Instructies voor het inrichten van een werkomgeving:
 
-1. **Installeer afhankelijkheden:**
+1. **Afhankelijkheden installeren:**
    ```bash
    npm install
    ```
 
-2. **Database voorbereiden:**
-   Zorg dat .env correct is ingesteld. Genereer daarna de Prisma client:
+2. **Database instellen:**
+   Controleer of het `.env` bestand correct is geconfigureerd en genereer de Prisma clients en database.
    ```bash
    npx prisma generate
    npx prisma db push
    ```
 
-3. **Start de ontwikkelomgeving:**
+3. **Development server starten:**
    ```bash
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000) in je browser om het resultaat te zien.
+   De omgeving is hierna beschikbaar op `http://localhost:3000`.
 
 ---
 
-## Installatie op Thuisserver (Proxmox / Portainer)
+## Deployment (Docker / Portainer)
 
-Deze applicatie is volledig geoptimaliseerd voor productiegebruik via Docker. De ingebouwde Next.js `standalone` build zorgt voor een extreem lichte en snelle container.
+Instructies voor uitrol via Portainer richting een LXC of ander Docker-hostingssysteem:
 
-1. Open **Portainer** op je thuisnetwerk.
-2. Ga naar **Stacks** en klik rechtsboven op **Add stack**.
-3. Kies onder Build method voor **Repository**.
-4. Vul bij Repository URL deze link in: 
+De repository bevat een Next.js `standalone` configuratie in de bijgevoegde Dockerfile.
+
+1. Navigeer in het Portainer dashboard naar **Stacks** > **Add stack**.
+2. Selecteer **Repository** als *Build method*.
+3. Vul deze URL in bij de *Repository URL*: 
    `https://github.com/DeRoelO/jubilant-fishstick.git` 
-5. (Optioneel): Voeg extra Environment variables (.env instellingen) toe onderin Portainer als dat nodig is.
-6. Klik op **Deploy the stack**. 
+4. Stel eventuele noodzakelijke *Environment variables* vast.
+5. Klik ten slotte op **Deploy the stack**. 
 
-Klaar! Portainer zal de broncode downloaden, de image compileren en de database map veilig opslaan in je LXC container (`/prisma_data`). De app draait vervolgens achter de schermen op poort `3000`.
+Bij een succesvolle deploy regelt de stack een automatische externe koppeling van poort `3000` en wordt er een persisterende data storage gereserveerd voor de SQLite database onder `/prisma_data`.
 
 ---
-*Gemaakt en beheerd door [DeRoelO](https://github.com/DeRoelO)*
+*Beheerd door [DeRoelO](https://github.com/DeRoelO)*
