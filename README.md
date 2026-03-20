@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎯 Eisenhower Tasks
 
-## Getting Started
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-ORM-1B222D?style=for-the-badge&logo=Prisma)](https://www.prisma.io/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+[![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker)](https://www.docker.com/)
 
-First, run the development server:
+Een krachtige, zelfgehoste Task Manager gebaseerd op het befaamde **Eisenhower Matrix** principe. Beheer je prioriteiten moeiteloos door taken te categoriseren op basis van urgentie en belangrijkheid, compleet met een intuïtieve *Drag & Drop* interface en veilige Microsoft-authenticatie.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📸 Preview
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+![Eisenhower Matrix Preview](./docs/screenshot.png)
+> *Tip: Maak een mapje genaamd `docs` aan in het project, en sla daar een screenshot op als `screenshot.png` om deze hier zichtbaar te maken!*
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## ✨ Features
 
-To learn more about Next.js, take a look at the following resources:
+- **✅ Eisenhower Matrix:** Visuele weergave van je prioriteiten in de vier bekende kwadranten (Do, Schedule, Delegate, Ignore).
+- **🖱️ Drag & Drop:** Sleep je taken razendsnel tussen de verschillende kwadranten met soepele animaties dankzij `@dnd-kit`.
+- **🔐 Veilige Authenticatie:** Integratie (MSAL) voor naadloos en veilig inloggen.
+- **💾 Lokale Database:** Razendsnelle, zero-config opslag via SQLite en de Prisma ORM.
+- **🎨 Modern Design:** Prachtige, responsive interface gebouwd met Tailwind CSS en Lucide Icons.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🚀 Lokale Installatie (Development)
 
-## Deploy on Vercel
+Wil je de code bewerken? Volg dan deze stappen:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Installeer afhankelijkheden:**
+   ```bash
+   npm install
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+2. **Database voorbereiden:**
+   Zorg dat .env correct is ingesteld. Genereer daarna de Prisma client:
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+3. **Start de ontwikkelomgeving:**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in je browser om het resultaat te zien.
+
+---
+
+## 🐳 Installatie op Thuisserver (Proxmox / Portainer)
+
+Deze applicatie is *volledig geoptimaliseerd* voor productiegebruik via Docker. De ingebouwde Next.js `standalone` build zorgt voor een extreem lichte en snelle container.
+
+1. Open **Portainer** op je thuisnetwerk.
+2. Ga naar **Stacks** en klik rechtsboven op **Add stack**.
+3. Kies onder *Build method* voor **Repository**.
+4. Vul bij *Repository URL* deze link in: 
+   `https://github.com/DeRoelO/jubilant-fishstick.git` 
+5. *(Optioneel)*: Voeg extra Environment variables (.env instellingen) toe onderin Portainer als dat nodig is.
+6. Klik op **Deploy the stack**. 
+
+Klaar! Portainer zal de broncode downloaden, de image compileren en de database map veilig opslaan in je LXC container (`/prisma_data`). De app draait vervolgens achter de schermen op poort `3000`.
+
+---
+*Gemaakt en beheerd door [DeRoelO](https://github.com/DeRoelO)*
