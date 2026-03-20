@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  eisenhower-app:
+    build: .
+    container_name: eisenhower-tasks
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      # Hier mappen we een mapje op je host (LXC) naar de container voor SQLite opslag.
+      # Zorg ervoor dat ./prisma_data bestaat op je LXC en voldoende rechten heeft.
+      - ./prisma_data:/app/prisma/data
+      
+  # Voorbeeld van database service als we later SQLite willen vervangen met PostgreSQL:
+  # db:
+  #   image: postgres:15-alpine
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: eisenhower_user
+  #     POSTGRES_PASSWORD: my_secure_password
+  #     POSTGRES_DB: eisenhower_db
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+# volumes:
+#   pgdata:
