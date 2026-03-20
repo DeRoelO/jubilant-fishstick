@@ -5,7 +5,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 [![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker)](https://www.docker.com/)
 
-Applicatie voor task management gebaseerd op de Eisenhower Matrix. De applicatie is bedoeld voor het categoriseren en beheren van taken op basis van urgentie en belangrijkheid.
+A task management application based on the Eisenhower Matrix. The application is designed for categorizing and managing tasks based on urgency and importance.
 
 ---
 
@@ -15,54 +15,54 @@ Applicatie voor task management gebaseerd op de Eisenhower Matrix. De applicatie
 
 ---
 
-## Kernfuncties
+## Core Features
 
-- **Eisenhower Matrix:** Categorisatie van taken in de vier standaard kwadranten (Do, Schedule, Delegate, Ignore).
-- **Drag & Drop support:** Mogelijkheid om taken tussen kwadranten te verplaatsen.
-- **Authenticatie:** Inlogmechanisme via Microsoft Entra ID (MSAL) integratie.
-- **Databeheer:** Data-opslag gefaciliteerd door SQLite in combinatie met de Prisma ORM.
-- **Frontend Stack:** Single-page structuur gebouwd met Next.js, gestyled met Tailwind CSS.
+- **Eisenhower Matrix:** Categorization of tasks into the four standard quadrants (Do, Schedule, Delegate, Ignore).
+- **Drag & Drop support:** Drag and drop functionality to move tasks between quadrants seamlessly.
+- **Authentication:** Login mechanism utilizing Microsoft Entra ID (MSAL) integration.
+- **Data Management:** Data storage facilitated by SQLite in combination with the Prisma ORM.
+- **Frontend Stack:** Single-page architecture built with Next.js, styled with Tailwind CSS.
 
 ---
 
-## Lokale Development
+## Local Development
 
-Instructies voor het inrichten van een werkomgeving:
+Instructions for setting up a local development environment:
 
-1. **Afhankelijkheden installeren:**
+1. **Install dependencies:**
    ```bash
    npm install
    ```
 
-2. **Database instellen:**
-   Controleer of het `.env` bestand correct is geconfigureerd en genereer de Prisma clients en database.
+2. **Database setup:**
+   Verify that the `.env` file is configured correctly, then generate the Prisma clients and database:
    ```bash
    npx prisma generate
    npx prisma db push
    ```
 
-3. **Development server starten:**
+3. **Start development server:**
    ```bash
    npm run dev
    ```
-   De omgeving is hierna beschikbaar op `http://localhost:3000`.
+   The environment will then be available at `http://localhost:3000`.
 
 ---
 
 ## Deployment (Docker / Portainer)
 
-Instructies voor uitrol via Portainer richting een LXC of ander Docker-hostingssysteem:
+Instructions for deployment via Portainer to an LXC or other Docker hosting systems:
 
-De repository bevat een Next.js `standalone` configuratie in de bijgevoegde Dockerfile.
+The repository contains a Next.js `standalone` configuration in the provided Dockerfile.
 
-1. Navigeer in het Portainer dashboard naar **Stacks** > **Add stack**.
-2. Selecteer **Repository** als *Build method*.
-3. Vul deze URL in bij de *Repository URL*: 
+1. Navigate to **Stacks** > **Add stack** in the Portainer dashboard.
+2. Select **Repository** as the *Build method*.
+3. Enter this URL into the *Repository URL* field: 
    `https://github.com/DeRoelO/jubilant-fishstick.git` 
-4. Stel eventuele noodzakelijke *Environment variables* vast.
-5. Klik ten slotte op **Deploy the stack**. 
+4. Configure any necessary *Environment variables* in the interface.
+5. Click **Deploy the stack**. 
 
-Bij een succesvolle deploy regelt de stack een automatische externe koppeling van poort `3000` en wordt er een persisterende data storage gereserveerd voor de SQLite database onder `/prisma_data`.
+Upon successful deployment, the stack automatically exposes port `3000` and provisions persistent data storage for the SQLite database at `/prisma_data`.
 
 ---
-*Beheerd door [DeRoelO](https://github.com/DeRoelO)*
+*Maintained by [DeRoelO](https://github.com/DeRoelO)*
