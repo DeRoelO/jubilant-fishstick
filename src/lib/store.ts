@@ -23,6 +23,9 @@ interface TaskStore {
     uncompleteTask: (taskId: string) => void;
     theme: 'light' | 'dark';
     setTheme: (theme: 'light' | 'dark') => void;
+    matrixDaysWindow: number;
+    setMatrixDaysWindow: (days: number) => void;
+    importStore: (jsonData: string) => void;
 }
 
 // Initial mock data to show functionality immediately
@@ -36,7 +39,7 @@ export const useTaskStore = create<TaskStore>()(
     persist(
         (set) => ({
             tasks: MOCK_TASKS,
-            plottedTasks: calculateTaskPriorities(MOCK_TASKS),
+            plottedTasks: calculateTaskPriorities(MOCK_TASKS, 7),
             selectedTaskId: null,
             columnWidths: {
                 masterlist: 250,
@@ -44,6 +47,8 @@ export const useTaskStore = create<TaskStore>()(
                 actionPlan: 250
             },
             actionPlanHeight: 400,
+            matrixDaysWindow: 7,
+            setMatrixDaysWindow: (days) => set((state) => ({ matrixDaysWindow: days, plottedTasks: calculateTaskPriorities(state.tasks, days) })),
 
             setColumnWidths: (widths) => {
                 set((state) => ({ columnWidths: { ...state.columnWidths, ...widths } }));
@@ -56,27 +61,27 @@ export const useTaskStore = create<TaskStore>()(
             setTheme: (theme) => set({ theme }),
 
             setTasks: (tasks) => {
-                set({ tasks, plottedTasks: calculateTaskPriorities(tasks) });
+                set((state) => ({ tasks, plottedTasks: calculateTaskPriorities(tasks, state.matrixDaysWindow) }));
             },
 
             addTask: (task) => {
                 set((state) => {
                     const tasks = [...state.tasks, task];
-                    return { tasks, plottedTasks: calculateTaskPriorities(tasks) };
+                    return { tasks, plottedTasks: calculateTaskPriorities(tasks, state.matrixDaysWindow) };
                 });
             },
 
             updateTaskImportance: (taskId, importance) => {
                 set((state) => {
                     const tasks = state.tasks.map(t => t.id === taskId ? { ...t, importance } : t);
-                    return { tasks, plottedTasks: calculateTaskPriorities(tasks) };
+                    return { tasks, plottedTasks: calculateTaskPriorities(tasks, state.matrixDaysWindow) };
                 });
             },
 
             updateTaskDetails: (taskId, updates) => {
                 set((state) => {
                     const tasks = state.tasks.map(t => t.id === taskId ? { ...t, ...updates } : t);
-                    return { tasks, plottedTasks: calculateTaskPriorities(tasks) };
+                    return { tasks, plottedTasks: calculateTaskPriorities(tasks, state.matrixDaysWindow) };
                 });
             },
 
@@ -85,7 +90,7 @@ export const useTaskStore = create<TaskStore>()(
             deleteTask: (taskId) => {
                 set((state) => {
                     const tasks = state.tasks.filter((t) => t.id !== taskId);
-                    return { tasks, plottedTasks: calculateTaskPriorities(tasks), selectedTaskId: state.selectedTaskId === taskId ? null : state.selectedTaskId };
+                    return { tasks, plottedTasks: calculateTaskPriorities(tasks, state.matrixDaysWindow), selectedTaskId: state.selectedTaskId === taskId ? null : state.selectedTaskId };
                 });
             },
 
@@ -100,7 +105,7 @@ export const useTaskStore = create<TaskStore>()(
                         }
                         return t;
                     });
-                    return { tasks, plottedTasks: calculateTaskPriorities(tasks) };
+                    return { tasks, plottedTasks: calculateTaskPriorities(tasks, state.matrixDaysWindow) };
                 });
             },
 
@@ -115,7 +120,7 @@ export const useTaskStore = create<TaskStore>()(
                         }
                         return t;
                     });
-                    return { tasks, plottedTasks: calculateTaskPriorities(tasks) };
+                    return { tasks, plottedTasks: calculateTaskPriorities(tasks, state.matrixDaysWindow) };
                 });
             },
 
@@ -130,7 +135,7 @@ export const useTaskStore = create<TaskStore>()(
                         }
                         return t;
                     });
-                    return { tasks, plottedTasks: calculateTaskPriorities(tasks) };
+                    return { tasks, plottedTasks: calculateTaskPriorities(tasks, state.matrixDaysWindow) };
                 });
             },
 
@@ -184,7 +189,7 @@ export const useTaskStore = create<TaskStore>()(
 
                     return {
                         tasks: updatedTasks,
-                        plottedTasks: calculateTaskPriorities(updatedTasks),
+                        plottedTasks: calculateTaskPriorities(updatedTasks, state.matrixDaysWindow),
                         selectedTaskId: (task.is_recurring && task.recurrence_interval) ? state.selectedTaskId : null
                     };
                 });
@@ -194,8 +199,41 @@ export const useTaskStore = create<TaskStore>()(
                     const tasks = state.tasks.map(t =>
                         t.id === taskId ? { ...t, is_complete: false, completed_at: null, updated_at: new Date() } : t
                     );
-                    return { tasks, plottedTasks: calculateTaskPriorities(tasks) };
+                    return { tasks, plottedTasks: calculateTaskPriorities(tasks, state.matrixDaysWindow) };
                 });
+            },
+            importStore: (jsonData) => {
+                try {
+                    const parsed = JSON.parse(jsonData);
+                    // Support both raw state and the wrapper format zustand persist uses
+                    const stateToImport = parsed.state || parsed;
+                    
+                    if (stateToImport.tasks) {
+                        set((state) => {
+                            const revivedTasks = stateToImport.tasks.map((t: any) => ({
+                                ...t,
+                                deadline: t.deadline ? new Date(t.deadline) : null,
+                                completed_at: t.completed_at ? new Date(t.completed_at) : null,
+                                created_at: new Date(t.created_at),
+                                updated_at: new Date(t.updated_at),
+                                subtasks: t.subtasks?.map((s: any) => ({
+                                    ...s,
+                                    created_at: new Date(s.created_at),
+                                    updated_at: new Date(s.updated_at)
+                                })) || []
+                            }));
+
+                            return {
+                                ...state,
+                                ...stateToImport,
+                                tasks: revivedTasks,
+                                plottedTasks: calculateTaskPriorities(revivedTasks, stateToImport.matrixDaysWindow ?? state.matrixDaysWindow)
+                            };
+                        });
+                    }
+                } catch (e) {
+                    console.error("Failed to import store:", e);
+                }
             }
         }),
         {
@@ -221,13 +259,14 @@ export const useTaskStore = create<TaskStore>()(
                     ...currentState,
                     ...persistedState,
                     tasks: revivedTasks,
-                    plottedTasks: calculateTaskPriorities(revivedTasks),
+                    plottedTasks: calculateTaskPriorities(revivedTasks, persistedState.matrixDaysWindow ?? 7),
                     columnWidths: persistedState.columnWidths ?? {
                         masterlist: 250,
                         matrix: 600,
                         actionPlan: 250
                     },
                     actionPlanHeight: persistedState.actionPlanHeight ?? 400,
+                    matrixDaysWindow: persistedState.matrixDaysWindow ?? 7,
                     theme: persistedState.theme ?? 'dark'
                 };
             }

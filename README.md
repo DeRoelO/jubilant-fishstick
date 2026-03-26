@@ -1,68 +1,85 @@
-# Eisenhower Tasks
+# Eisenhower Tasks App
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![Prisma](https://img.shields.io/badge/Prisma-ORM-1B222D?style=for-the-badge&logo=Prisma)](https://www.prisma.io/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
-[![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker)](https://www.docker.com/)
-
-A task management application based on the Eisenhower Matrix. The application is designed for categorizing and managing tasks based on urgency and importance.
+Een persoonlijke taakmanager gebaseerd op de Eisenhower-matrix. Gebouwd met Next.js, Tailwind CSS, Zustand en Prisma (SQLite).
 
 ---
 
-## Preview
+## Lokale ontwikkeling
 
-![Eisenhower Matrix Preview](./docs/screenshot.png)
+```bash
+npm install
+npm run dev
+```
 
----
-
-## Core Features
-
-- **Eisenhower Matrix:** Categorization of tasks into the four standard quadrants (Do, Schedule, Delegate, Ignore).
-- **Drag & Drop support:** Drag and drop functionality to move tasks between quadrants seamlessly.
-- **Authentication:** Login mechanism utilizing Microsoft Entra ID (MSAL) integration.
-- **Data Management:** Data storage facilitated by SQLite in combination with the Prisma ORM.
-- **Frontend Stack:** Single-page architecture built with Next.js, styled with Tailwind CSS.
+De app is dan bereikbaar via **http://localhost:3000**.
 
 ---
 
-## Local Development
+## Docker (aanbevolen voor productie / server)
 
-Instructions for setting up a local development environment:
+### Vereisten
+- Docker Desktop of Docker + Docker Compose op je server (LXC/VPS/etc.)
+- De map `prisma_data/` moet aanwezig zijn in de projectroot (voor SQLite persistentie)
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+### Starten
 
-2. **Database setup:**
-   Verify that the `.env` file is configured correctly, then generate the Prisma clients and database:
-   ```bash
-   npx prisma generate
-   npx prisma db push
-   ```
+```bash
+docker compose up --build -d
+```
 
-3. **Start development server:**
-   ```bash
-   npm run dev
-   ```
-   The environment will then be available at `http://localhost:3000`.
+De app is dan bereikbaar via **http://localhost:3005** (of via je domein als je een reverse proxy gebruikt).
+
+### Stoppen
+
+```bash
+docker compose down
+```
+
+> **Poorten:** De container draait intern op poort `3000` en wordt extern beschikbaar gesteld op poort `3005` (via de `3005:3000` mapping in `docker-compose.yml`).
+> `npm run dev` gebruikt altijd poort `3000` en staat **los van Docker**.
+
+---
+
+## Data persistentie
+
+De SQLite-database staat in `prisma_data/dev.db`. Deze map wordt als volume gemount in de container, zodat data bewaard blijft bij het opnieuw bouwen of herstarten van de container.
+
+Het bestand `prisma_data/dev.db` staat **niet** in `.gitignore` zodat je de database kunt meenemen bij een deployment, maar commit hem nooit naar een publieke repo.
 
 ---
 
-## Deployment (Docker / Portainer)
+## Omgevingsvariabelen
 
-Instructions for deployment via Portainer to an LXC or other Docker hosting systems:
+Kopieer `.env.example` naar `.env` en vul de juiste waarden in voor Microsoft Entra ID (Azure AD) authenticatie:
 
-The repository contains a Next.js `standalone` configuration in the provided Dockerfile.
+```bash
+cp .env.example .env
+```
 
-1. Navigate to **Stacks** > **Add stack** in the Portainer dashboard.
-2. Select **Repository** as the *Build method*.
-3. Enter this URL into the *Repository URL* field: 
-   `https://github.com/DeRoelO/jubilant-fishstick.git` 
-4. Configure any necessary *Environment variables* in the interface.
-5. Click **Deploy the stack**. 
-
-Upon successful deployment, the stack automatically exposes port `3000` and provisions persistent data storage for the SQLite database at `/prisma_data`.
+```
+NEXT_PUBLIC_CLIENT_ID=your_azure_app_client_id
+NEXT_PUBLIC_TENANT_ID=common
+```
 
 ---
-*Maintained by [DeRoelO](https://github.com/DeRoelO)*
+
+## Deployment op een server
+
+1. Kopieer de projectmap naar je server (LXC/VPS)
+2. Zorg dat `prisma_data/` bestaat: `mkdir -p prisma_data`
+3. Eventueel bestaande database kopiëren: `cp /pad/naar/backup.db prisma_data/dev.db`
+4. Start de container: `docker compose up --build -d`
+5. Koppel poort 3005 aan je domein via een reverse proxy (bijv. Nginx of Caddy)
+
+---
+
+## Tech stack
+
+| Onderdeel | Technologie |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Styling | Tailwind CSS v4 |
+| State | Zustand |
+| Database | Prisma + SQLite |
+| Auth | Microsoft MSAL (Entra ID) |
+| Container | Docker + Docker Compose |

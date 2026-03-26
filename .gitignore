@@ -41,3 +41,12 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# SQLite local dev database (production data lives in prisma_data/)
+prisma/dev.db
+prisma/dev.db-journal
+
+# Scratch / debug files
+build.log
+tsc_output.txt
+update_store.js

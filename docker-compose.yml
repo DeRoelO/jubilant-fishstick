@@ -6,7 +6,7 @@ services:
     container_name: eisenhower-tasks
     restart: always
     ports:
-      - "3000:3000"
+      - "3005:3000"
     volumes:
       # Hier mappen we een mapje op je host (LXC) naar de container voor SQLite opslag.
       # Zorg ervoor dat ./prisma_data bestaat op je LXC en voldoende rechten heeft.

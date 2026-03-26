@@ -25,15 +25,19 @@ export interface Subtask {
 
 export interface PlottedTask extends Task {
   priorityScore: number; // 1-10 (X-axis)
+  dueDateScore?: number; // 1-10 (X-axis) for due date
   isOverdue: boolean;
   hasMissingData: boolean; // For Col 3: The Waiting Room
 }
 
 /**
- * Calculates a dynamic X-axis "Priority" score (1 to 100).
+ * Calculates a dynamic X-axis "Priority" score (1 to 10).
  */
-export function calculateTaskPriorities(tasks: Task[]): PlottedTask[] {
+export function calculateTaskPriorities(tasks: Task[], windowDays: number = 7): PlottedTask[] {
   const now = new Date();
+  
+  // Normalize to 00:00:00 for a stable daily view
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
   const taskWithTStart = tasks.map(task => {
     let hasMissingData = false;
@@ -46,8 +50,9 @@ export function calculateTaskPriorities(tasks: Task[]): PlottedTask[] {
     } else {
       // Step 1: Calculate theoretical start time (T_start)
       const d = new Date(task.deadline);
-      // estimated_duration is in days. Convert to milliseconds: * 24 * 60 * 60 * 1000 = * 86400000
-      tStart = new Date(d.getTime() - task.estimated_duration * 86400000);
+      // Duration 1 means it starts and ends on the exact same day (subtract 0 days)
+      const daysToSubtract = Math.max(0, task.estimated_duration - 1);
+      tStart = new Date(d.getTime() - daysToSubtract * 86400000);
 
       // Step 5 (Edge Cases): If T_start is in the past (overdue)
       if (tStart < now) {
@@ -60,43 +65,53 @@ export function calculateTaskPriorities(tasks: Task[]): PlottedTask[] {
 
   const activeTasks = taskWithTStart.filter(t => !t.hasMissingData && t.tStart !== null && !t.is_complete);
 
-  const today = now.getTime();
-  const first_start_date = activeTasks.length > 0 ? Math.min(...activeTasks.map(t => t.tStart!.getTime())) : today;
-  const last_start_date = activeTasks.length > 0 ? Math.max(...activeTasks.map(t => t.tStart!.getTime())) : today;
-
-  const windowStart = Math.min(first_start_date, today);
-  const windowEnd = Math.min(last_start_date, today + 7 * 86400000);
+  const windowStart = today;
+  const windowEnd = today + (windowDays * 86400000);
 
   // Ensure we have a valid range (min 1ms to avoid divide by zero)
-  const range = Math.max(1, windowEnd - windowStart);
+  const range = windowDays * 86400000;
 
   return taskWithTStart.map((task) => {
     let priorityScore = 10; // Default to least urgent (right)
+    let dueDateScore = 10;
 
     if (!task.hasMissingData && task.tStart) {
       const time = task.tStart.getTime();
+      const dueTime = task.deadline ? task.deadline.getTime() : time;
 
       if (range <= 0) {
-        // Fallback if earliest task is already beyond today+7
+        // Fallback
         priorityScore = 10;
-      } else if (time <= windowStart) {
-        priorityScore = 1; // Earliest task(s): Most urgent (Left)
-      } else if (time >= windowEnd) {
-        priorityScore = 10; // Beyond 7 days from now: Least urgent (Right)
+        dueDateScore = 10;
       } else {
-        // Linear mapping between 1 and 10 over the [earliest, today+7] window
-        priorityScore = 1 + ((time - windowStart) / range) * 9;
+        // Start date score calculation
+        if (time <= windowStart) {
+          priorityScore = 1; // Earliest task(s): Most urgent (Left)
+        } else if (time >= windowEnd) {
+          priorityScore = 10; // Beyond window: Least urgent (Right)
+        } else {
+          priorityScore = 1 + ((time - windowStart) / range) * 9;
+        }
+
+        // Due date score calculation
+        if (dueTime <= windowStart) dueDateScore = 1;
+        else if (dueTime >= windowEnd) dueDateScore = 10;
+        else dueDateScore = 1 + ((dueTime - windowStart) / range) * 9;
       }
 
       // Safety cap bounds
       if (priorityScore < 1) priorityScore = 1;
       if (priorityScore > 10) priorityScore = 10;
+      
+      if (dueDateScore < 1) dueDateScore = 1;
+      if (dueDateScore > 10) dueDateScore = 10;
     }
 
     const { tStart, ...rest } = task;
     return {
       ...rest,
       priorityScore: Math.round(priorityScore),
+      dueDateScore: Math.round(dueDateScore),
     } as PlottedTask;
   }).sort((a, b) => {
     if (a.hasMissingData) return 1;

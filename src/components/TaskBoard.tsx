@@ -7,7 +7,7 @@ import { useTaskStore } from "@/lib/store";
 import { Task } from "@/lib/priority";
 
 export function TaskBoard() {
-    const { plottedTasks, selectedTaskId, selectTask, updateTaskImportance, updateTaskDetails, addTask, columnWidths, actionPlanHeight, setColumnWidths, setActionPlanHeight, uncompleteTask, theme, setTheme } = useTaskStore();
+    const { plottedTasks, selectedTaskId, selectTask, updateTaskImportance, updateTaskDetails, addTask, columnWidths, actionPlanHeight, setColumnWidths, setActionPlanHeight, uncompleteTask, theme, setTheme, matrixDaysWindow, setMatrixDaysWindow, importStore } = useTaskStore();
     const { masterlist, matrix, actionPlan } = columnWidths;
 
     const masterList = plottedTasks.filter(t => !t.hasMissingData && !t.is_complete);
@@ -15,6 +15,7 @@ export function TaskBoard() {
     const completedTasks = plottedTasks.filter(t => t.is_complete).sort((a, b) => (b.completed_at?.getTime() || 0) - (a.completed_at?.getTime() || 0));
 
     const [isHydrated, setIsHydrated] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     useEffect(() => {
         setIsHydrated(true);
@@ -171,8 +172,18 @@ export function TaskBoard() {
                         {showCompleted ? "View Active Tasks" : `View Completed (${completedTasks.length})`}
                     </button>
 
-                    {/* Preferences Bolletje */}
-                    <div className="absolute bottom-20 left-4 z-50">
+                    {/* Settings & Preferences Bolletjes */}
+                    <div className="absolute bottom-20 left-4 z-50 flex flex-col gap-3">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsSettingsOpen(true);
+                            }}
+                            className="w-10 h-10 rounded-full bg-indigo-600/80 hover:bg-indigo-600 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-95 group"
+                            title="Matrix Settings"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        </button>
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -239,11 +250,32 @@ export function TaskBoard() {
                             </div>
 
                             {(() => {
-                                const posCounts: Record<string, number> = {};
+                                const importanceTracks: Record<number, {endScore: number}[]> = {};
+                                const offsetMap: Record<string, number> = {};
+                                
+                                masterList.forEach((task) => {
+                                    const y = task.importance ?? 0;
+                                    if (!importanceTracks[y]) importanceTracks[y] = [];
+                                    
+                                    const startX = task.priorityScore;
+                                    const endX = task.dueDateScore ?? task.priorityScore;
+                                    
+                                    let trackIndex = 0;
+                                    while (trackIndex < importanceTracks[y].length && importanceTracks[y][trackIndex].endScore >= startX) {
+                                        trackIndex++;
+                                    }
+                                    
+                                    if (trackIndex >= importanceTracks[y].length) {
+                                        importanceTracks[y][trackIndex] = { endScore: endX };
+                                    } else {
+                                        importanceTracks[y][trackIndex].endScore = endX;
+                                    }
+                                    
+                                    offsetMap[task.id] = trackIndex;
+                                });
+
                                 return masterList.map((task, index) => {
-                                    const posKey = `${task.priorityScore}-${task.importance}`;
-                                    const offsetIndex = posCounts[posKey] || 0;
-                                    posCounts[posKey] = offsetIndex + 1;
+                                    const offsetIndex = offsetMap[task.id] || 0;
 
                                     return (
                                         <DraggableNode
@@ -583,6 +615,73 @@ export function TaskBoard() {
                         </div>
                     )}
                 </div>
+
+                {isSettingsOpen && (
+                    <div className="absolute inset-0 bg-black/50 z-[1000] flex items-center justify-center" onClick={() => setIsSettingsOpen(false)}>
+                        <div className="bg-background border border-border p-6 rounded-xl shadow-2xl w-80" onClick={e => e.stopPropagation()}>
+                            <h3 className="text-lg font-semibold text-indigo-400 mb-4 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                                Matrix Settings
+                            </h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Timeline Window (Days)</label>
+                                    <input 
+                                        type="number" 
+                                        min={1} 
+                                        max={365}
+                                        value={matrixDaysWindow}
+                                        onChange={(e) => {
+                                            const v = parseInt(e.target.value);
+                                            if(!isNaN(v) && v > 0) setMatrixDaysWindow(v);
+                                        }}
+                                        className="w-full bg-input border border-input-border rounded-md p-2 text-foreground focus:outline-none focus:border-accent transition-colors"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground mt-1">Sets the total number of days the X-axis of the Matrix represents starting from today.</p>
+                                </div>
+
+                                <div className="border-t border-border pt-4">
+                                    <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-3">Migration & Backup</h4>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-[10px] font-semibold text-muted-foreground mb-1 uppercase">Export Data</label>
+                                            <button 
+                                                onClick={() => {
+                                                    const data = JSON.stringify({ state: useTaskStore.getState() });
+                                                    navigator.clipboard.writeText(data);
+                                                    alert("Data gekopieerd naar klembord!");
+                                                }}
+                                                className="w-full bg-muted/50 hover:bg-muted text-foreground py-1.5 rounded text-xs font-medium transition-colors border border-border"
+                                            >
+                                                Kopieer alle taken (JSON)
+                                            </button>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-semibold text-muted-foreground mb-1 uppercase">Import Data</label>
+                                            <textarea 
+                                                placeholder="Plak hier de JSON van de oude poort..."
+                                                className="w-full bg-input border border-input-border rounded-md p-2 text-[10px] text-foreground h-16 focus:outline-none focus:border-accent"
+                                                onChange={(e) => {
+                                                    if (e.target.value.trim()) {
+                                                        if (confirm("Weet je zeker dat je alle huidige taken wilt overschrijven met deze gegevens?")) {
+                                                            importStore(e.target.value);
+                                                            e.target.value = "";
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mt-8 flex justify-end">
+                                <button onClick={() => setIsSettingsOpen(false)} className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors">
+                                    Done
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </DndContext>
     );
@@ -597,24 +696,53 @@ function DraggableNode({ task, index, offsetIndex, isSelected, onSelect }: { tas
     const isImportant = (task.importance ?? 0) >= 5;
     const isUrgent = (task.priorityScore ?? 0) <= 5;
 
-    const getQuadrantColorClasses = () => {
-        if (isImportant && isUrgent) return 'bg-emerald-500 hover:bg-emerald-400';
-        if (isImportant && !isUrgent) return 'bg-blue-500 hover:bg-blue-400';
-        if (!isImportant && isUrgent) return 'bg-amber-500 hover:bg-amber-400';
-        return 'bg-rose-500 hover:bg-rose-400';
+    const getColorTheme = () => {
+        if (isImportant && isUrgent) return { bg: 'bg-emerald-500 hover:bg-emerald-400', border: 'border-emerald-500', text: 'text-emerald-500' };
+        if (isImportant && !isUrgent) return { bg: 'bg-blue-500 hover:bg-blue-400', border: 'border-blue-500', text: 'text-blue-500' };
+        if (!isImportant && isUrgent) return { bg: 'bg-amber-500 hover:bg-amber-400', border: 'border-amber-500', text: 'text-amber-500' };
+        return { bg: 'bg-rose-500 hover:bg-rose-400', border: 'border-rose-500', text: 'text-rose-500' };
     };
+    const theme = getColorTheme();
+
+    const isSame = task.priorityScore === (task.dueDateScore ?? task.priorityScore);
+    const startLeftPct = ((task.priorityScore - 1) / 9) * 100;
+    const dueLeftPct = (((task.dueDateScore ?? task.priorityScore) - 1) / 9) * 100;
+    const widthPct = dueLeftPct - startLeftPct;
 
     // Calculate a small offset to prevent perfect overlapping
     const jitter = offsetIndex * 6;
 
-    const style = {
+    const style: React.CSSProperties = {
         transform: transform ? `translate3d(0px, ${transform.y}px, 0)` : undefined,
-        // X priority (1-10) -> left %
-        left: `calc(${((task.priorityScore - 1) / 9) * 100}% - ${12 - jitter}px)`,
         // Y importance (0-10) -> bottom %
         bottom: `calc(${(task.importance / 10) * 100}% - ${12 - jitter}px)`,
-        zIndex: isSelected ? 200 : 100 + offsetIndex, // Selected always on top, others stack
+        // Group the whole node visually spanning from start to due
+        left: `calc(${startLeftPct}% - ${12 - jitter}px)`,
+        width: isSame ? '24px' : `calc(${widthPct}% + 24px)`,
+        height: '24px',
+        ...(isSelected ? { zIndex: 200 } : {}), // Selected always on top, others stack
     };
+
+    if (isSame) {
+        return (
+            <div
+                ref={setNodeRef}
+                style={style}
+                {...listeners}
+                {...attributes}
+                onPointerDown={(e) => {
+                    e.stopPropagation();
+                    onSelect();
+                    listeners?.onPointerDown?.(e);
+                }}
+                className={`absolute flex items-center justify-center rounded-full text-[11px] font-bold shadow-[0_0_10px_rgba(0,0,0,0.5)] outline outline-2 transition-all cursor-grab active:cursor-grabbing text-slate-950 z-[50]
+                ${theme.bg}
+                ${isSelected ? 'ring-2 ring-white scale-125 outline-white' : 'outline-slate-950'}`}
+            >
+                {index}
+            </div>
+        );
+    }
 
     return (
         <div
@@ -627,11 +755,18 @@ function DraggableNode({ task, index, offsetIndex, isSelected, onSelect }: { tas
                 onSelect();
                 listeners?.onPointerDown?.(e);
             }}
-            className={`absolute w-6 h-6 flex items-center justify-center rounded-full text-[11px] font-bold shadow-[0_0_10px_rgba(0,0,0,0.5)] outline outline-2 transition-all cursor-grab active:cursor-grabbing text-slate-950
-        ${getQuadrantColorClasses()}
-        ${isSelected ? 'ring-2 ring-white scale-125 outline-white' : 'outline-slate-950'}`}
+            className={`absolute flex items-center transition-all cursor-grab active:cursor-grabbing ${isSelected ? 'scale-110 drop-shadow-xl' : ''}`}
         >
-            {index}
+            {/* Start Streepje */}
+            <div className={`w-[3px] h-4 rounded-full ${theme.bg} absolute left-[10px] z-[10] shadow-sm`} />
+            
+            {/* Stippellijntje connecting start to due date */}
+            <div className={`border-t-2 border-dotted ${theme.border} absolute left-[13px] right-[13px] opacity-70 z-[10]`} />
+            
+            {/* Due Bolletje */}
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shadow-[0_0_10px_rgba(0,0,0,0.5)] outline outline-2 text-slate-950 absolute right-0 z-[50] ${theme.bg} ${isSelected ? 'ring-2 ring-white outline-white' : 'outline-slate-950'}`}>
+                {index}
+            </div>
         </div>
     );
 }
